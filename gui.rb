@@ -27,8 +27,11 @@ def send
 
     sleep(1)
 
+    
+    sp.print @txVentilOpen1.text.chomp + ","
+    sp.print @txWaitVentilOpen.text.chomp + ","
+    sp.print @txVentilOpen2.text.chomp + ","
     sp.print @txDelaytime.text.chomp
-
     sp.close                       #see note 1
 
 end
@@ -44,22 +47,22 @@ def createUI
   laVentilOpen1 = Gtk::Label.new("Zeit Ventil offen")
   layout.attach_defaults(laVentilOpen1,0,1,0,1)
 
-  txVentilOpen1 = Gtk::Entry.new
-  layout.attach_defaults(txVentilOpen1,1,2,0,1)
+  @txVentilOpen1 = Gtk::Entry.new
+  layout.attach_defaults(@txVentilOpen1,1,2,0,1)
 
 
   laWaitVentilOpen = Gtk::Label.new("Zeit Ventil warten")
   layout.attach_defaults(laWaitVentilOpen,0,1,1,2)
 
-  txWaitVentilOpen = Gtk::Entry.new
-  layout.attach_defaults(txWaitVentilOpen,1,2,1,2)
+  @txWaitVentilOpen = Gtk::Entry.new
+  layout.attach_defaults(@txWaitVentilOpen,1,2,1,2)
 
 
   laVentilOpen2 = Gtk::Label.new("Zeit Ventil offen")
   layout.attach_defaults(laVentilOpen2,0,1,2,3)
 
-  txVentilOpen2 = Gtk::Entry.new
-  layout.attach_defaults(txVentilOpen2,1,2,2,3)
+  @txVentilOpen2 = Gtk::Entry.new
+  layout.attach_defaults(@txVentilOpen2,1,2,2,3)
 
   layout.set_row_spacing(2,20)
 
@@ -75,7 +78,7 @@ def createUI
   layout.attach_defaults(btSend,0,1,4,5)
 
   @txSerialPort = Gtk::Entry.new
-  @txSerialPort.text = "COM3"
+  @txSerialPort.text = "COM4"
   layout.attach_defaults(@txSerialPort,1,2,4,5)
 
   

@@ -5,7 +5,12 @@ int ventil = 12;
 int shot = 8;
 int shotswitch = 4;
 int ventilswitch = 5;
-bool bserial = false;
+bool bserial = true;
+
+int ventilOpen1 = 100;
+int ventilDelay = 100;
+int ventilOpen2 = 100;
+int delayShot = 100; 
 
 void setup() {                
 
@@ -40,14 +45,14 @@ void loop() {
   while(1 == shotready) {
     mylog("open ventil");
     digitalWrite(ventil,HIGH);
-    delay(50);
+    delay(ventilOpen1);
     digitalWrite(ventil,LOW);
-    delay(80);
+    delay(ventilDelay);
     digitalWrite(ventil,HIGH);
-    delay(50);
+    delay(ventilOpen2);
     digitalWrite(ventil,LOW);
     
-    delay(160);
+    delay(delayShot);
     mylog("shot");
     
     digitalWrite(shot,HIGH);
@@ -56,7 +61,9 @@ void loop() {
       
     shotready = digitalRead(shotswitch);
   }
-  mylog("wait");
+  delay(1000);
+  mylog("" + String(ventilOpen1) + "," + String(ventilDelay) + "," + String(ventilOpen2) + "," + String(delayShot));
+
 }
 
 void mylog(String value) {
@@ -79,25 +86,25 @@ void openVentil() {
 }
 
 void readSerialData() {
-
+  
   while (Serial.available() > 0) {
-
+    mylog("readSerialData");
     
-    int ventilOpen1 = Serial.parseInt(); 
+    ventilOpen1 = Serial.parseInt(); 
     
-    int ventilDelay = Serial.parseInt(); 
+    ventilDelay = Serial.parseInt(); 
     
-    int ventilOpen2 = Serial.parseInt(); 
+    ventilOpen2 = Serial.parseInt(); 
 
-    int delayShot = Serial.parseInt(); 
+    delayShot = Serial.parseInt(); 
 
-    if (Serial.read() == '\n') {
+    //if (Serial.read() == '\n') {
       // print the three numbers in one string as hexadecimal:
-      Serial.print("Ventil open 1 : " + ventilOpen1 + " # ");
-      Serial.print("Ventil open 2 : " + ventilOpen2 + " # ");      
-      Serial.print("delay " + ventilDelay + " # ");
-      Serial.println("delayShot " + ventilShot + "");
-    }
+      Serial.println("Ventil open 1 : " + String(ventilOpen1) + " # ");
+      Serial.println("Ventil open 2 : " + String(ventilOpen2) + " # ");      
+      Serial.println("delay " + String(ventilDelay) + " # ");
+      Serial.println("delayShot " + String(delayShot) + "");
+    //}
   }
 
 }
