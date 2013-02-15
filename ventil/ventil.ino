@@ -35,6 +35,7 @@ void loop() {
 
   int ventilready = digitalRead(ventilswitch);
   while(1 == ventilready) {
+    mylog("ventil spuelen");
     delay(100);
     openVentil();
     ventilready = digitalRead(ventilswitch);
@@ -43,19 +44,23 @@ void loop() {
   int shotready = digitalRead(shotswitch);
 
   while(1 == shotready) {
-    mylog("open ventil");
     digitalWrite(ventil,HIGH);
+    mylog("open ventil 1");
     delay(ventilOpen1);
     digitalWrite(ventil,LOW);
     delay(ventilDelay);
-    digitalWrite(ventil,HIGH);
-    delay(ventilOpen2);
-    digitalWrite(ventil,LOW);
+    if(ventilOpen2 > 0) {
+      digitalWrite(ventil,HIGH);
+      mylog("open ventil 2");
+      delay(ventilOpen2);
+      digitalWrite(ventil,LOW);
+    }
     
     delay(delayShot);
-    mylog("shot");
+    
     
     digitalWrite(shot,HIGH);
+    mylog("shot");
     delay(500);
     digitalWrite(shot,LOW);
       
