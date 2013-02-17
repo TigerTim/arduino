@@ -37,7 +37,7 @@ end
 
 def createUI
 
-  layout = Gtk::Table.new(3,2)
+  layout = Gtk::Table.new(20,2)
   layout.column_spacings = 5
   layout.row_spacings = 5
 
@@ -78,27 +78,40 @@ def createUI
   layout.set_row_spacing(3,30)
   btSend = Gtk::Button.new("Send")
   layout.attach_defaults(btSend,0,1,4,5)
-
-  @txSerialPort = Gtk::Entry.new
-  @txSerialPort.text = "COM4"
-  layout.attach_defaults(@txSerialPort,1,2,4,5)
-
   
   btSend.signal_connect("clicked") {
     send()
   }
 
+  @txSerialPort = Gtk::Entry.new
+  @txSerialPort.text = "COM4"
+  layout.attach_defaults(@txSerialPort,1,2,4,5)
+
   btRead = Gtk::Button.new("Read")
   layout.attach_defaults(btRead,0,1,5,6)
   btRead.signal_connect("clicked") {
+    i = 0
     t = Thread.new { 
           loop { 
-            puts @sp.read
+            s = @sp.read
+            @buf.insert(@buf.end_iter,"#{s}\n")
+            @scroll.vadjustment.value = @scroll.vadjustment.upper - @scroll.vadjustment.page_size
             sleep(1)
           }
         }
   }
-  
+
+  @scroll = Gtk::ScrolledWindow.new
+  @buf = Gtk::TextBuffer.new
+  @buf.text = 'test'
+  log = Gtk::TextView.new(@buf)
+
+  @scroll.add(log)
+  @scroll.set_policy( Gtk::POLICY_AUTOMATIC, Gtk::POLICY_ALWAYS )
+  @scroll.set_shadow_type(Gtk::SHADOW_ETCHED_IN)
+  @scroll.set_size_request(200,500)
+  layout.attach_defaults(@scroll,0,2,6,15)
+
   window = Gtk::Window.new
   window.border_width = 20
 
@@ -129,8 +142,8 @@ data_bits = 8
 stop_bits = 1
 parity = SerialPort::NONE
 
-@sp = SerialPort.new(port_str, baud_rate, data_bits, stop_bits, parity)
+#@sp = SerialPort.new(port_str, baud_rate, data_bits, stop_bits, parity)
 
-puts @sp.read
+#puts @sp.read
 
 createUI
