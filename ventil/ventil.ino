@@ -2,7 +2,8 @@
 
 int led_ready = 3;
 int ventil = 12;
-int shot = 8;
+int blitz = 8;
+int shot = 7;
 int shotswitch = 4;
 int ventilswitch = 5;
 bool bserial = true;
@@ -11,11 +12,13 @@ int ventilOpen1 = 100;
 int ventilDelay = 100;
 int ventilOpen2 = 100;
 int delayShot = 100; 
+int delayBlitz = 100; 
 
 void setup() {                
 
   pinMode(led_ready, OUTPUT);
   pinMode(shot, OUTPUT);
+  pinMode(blitz, OUTPUT);
   pinMode(ventil, OUTPUT);  
   pinMode(shotswitch, INPUT);
   pinMode(ventilswitch, INPUT);
@@ -23,6 +26,7 @@ void setup() {
   digitalWrite(led_ready, LOW);
   digitalWrite(ventil, LOW); 
   digitalWrite(shot, LOW);
+  digitalWrite(blitz, LOW);
   
   Serial.begin(9600);
   mylog("START") ;
@@ -58,16 +62,20 @@ void loop() {
     
     delay(delayShot);
     
-    
-    digitalWrite(shot,HIGH);
     mylog("shot");
-    delay(500);
+    digitalWrite(shot,HIGH);
+    delay(delayBlitz);
+    digitalWrite(blitz,HIGH);
+    delay(300);
+    digitalWrite(blitz,LOW);
     digitalWrite(shot,LOW);
+    
+    delay(1000);  
       
     shotready = digitalRead(shotswitch);
   }
   delay(1000);
-  mylog("" + String(ventilOpen1) + "," + String(ventilDelay) + "," + String(ventilOpen2) + "," + String(delayShot));
+  mylog("" + String(ventilOpen1) + "," + String(ventilDelay) + "," + String(ventilOpen2) + "," + String(delayShot) + "," + String(delayBlitz));
 
 }
 
@@ -95,13 +103,12 @@ void readSerialData() {
   while (Serial.available() > 0) {
     mylog("readSerialData");
     
-    ventilOpen1 = Serial.parseInt(); 
-    
-    ventilDelay = Serial.parseInt(); 
-    
-    ventilOpen2 = Serial.parseInt(); 
-
-    delayShot = Serial.parseInt(); 
+    ventilOpen1 = Serial.parseInt();    
+    ventilDelay = Serial.parseInt();    
+    ventilOpen2 = Serial.parseInt();
+    delayShot = Serial.parseInt();
+    delayBlitz = Serial.parseInt();
+     
 
     //if (Serial.read() == '\n') {
       // print the three numbers in one string as hexadecimal:
@@ -109,6 +116,7 @@ void readSerialData() {
       Serial.println("Ventil open 2 : " + String(ventilOpen2) + " # ");      
       Serial.println("delay " + String(ventilDelay) + " # ");
       Serial.println("delayShot " + String(delayShot) + "");
+      Serial.println("delayBlitz " + String(delayBlitz) + "");
     //}
   }
 

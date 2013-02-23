@@ -12,6 +12,21 @@ require 'gtk2'
 
 require 'serialport'
 
+def save
+
+    title = @txTitle.text.chomp
+    ventilopen1 = @txVentilOpen1.text.chomp.to_i
+    ventilwait = @txWaitVentilOpen.text.chomp.to_i
+    ventilopen2 = @txVentilOpen2.text.chomp.to_i
+    waitshot = @txDelaytime.text.chomp.to_i
+    waitBlitz = @txBlitzDelaytime.text.chomp.to_i
+
+    save_file = File.new("setup.save","a")
+    save_file.puts "#{title},#{ventilopen1},#{ventilwait},#{ventilopen2},#{waitshot},#{waitBlitz}"
+    save_file.close
+
+end
+
 def send
 
     #puts @txDelaytime.text
@@ -26,11 +41,13 @@ def send
     ventilwait = @txWaitVentilOpen.text.chomp.to_i
     ventilopen2 = @txVentilOpen2.text.chomp.to_i
     waitshot = @txDelaytime.text.chomp.to_i
+    waitBlitz = @txBlitzDelaytime.text.chomp.to_i
 
     @sp.print ventilopen1.to_s + ","
     @sp.print ventilwait.to_s + ","
     @sp.print ventilopen2.to_s + ","
-    @sp.print "#{waitshot - ventilwait - ventilopen2}"
+    @sp.print "#{waitshot - ventilwait - ventilopen2 - ventilopen2},"
+    @sp.print waitBlitz
     #sp.close                       #see note 1
 
 end
@@ -45,39 +62,48 @@ def createUI
   laVentilOpen1 = Gtk::Label.new("time ventil open")
   layout.attach_defaults(laVentilOpen1,0,1,0,1)
 
-  @txVentilOpen1 = Gtk::Entry.new
-  @txVentilOpen1.text = '50'
+  @txVentilOpen1 = Gtk::SpinButton.new(0,500,1)
+  @txVentilOpen1.value = 50.to_f
   layout.attach_defaults(@txVentilOpen1,1,2,0,1)
 
 
   laWaitVentilOpen = Gtk::Label.new("wait for second drop")
   layout.attach_defaults(laWaitVentilOpen,0,1,1,2)
 
-  @txWaitVentilOpen = Gtk::Entry.new
-  @txWaitVentilOpen.text = '230'
+  @txWaitVentilOpen = Gtk::SpinButton.new(0,500,1)
+  @txWaitVentilOpen.value = 230
   layout.attach_defaults(@txWaitVentilOpen,1,2,1,2)
 
 
   laVentilOpen2 = Gtk::Label.new("time ventil open")
   layout.attach_defaults(laVentilOpen2,0,1,2,3)
 
-  @txVentilOpen2 = Gtk::Entry.new
-  @txVentilOpen2.text = '50'
+  @txVentilOpen2 = Gtk::SpinButton.new(0,500,1)
+  @txVentilOpen2.value = 50
   layout.attach_defaults(@txVentilOpen2,1,2,2,3)
 
   layout.set_row_spacing(2,20)
 
+  laBlitzDelaytime = Gtk::Label.new("wait to blitz ")
+  layout.attach_defaults(laBlitzDelaytime,0,1,3,4)
+
+  @txBlitzDelaytime = Gtk::SpinButton.new(0,500,1)
+  @txBlitzDelaytime.value = 420
+  layout.attach_defaults(@txBlitzDelaytime,1,2,3,4)
+
+
   laDelaytime = Gtk::Label.new("wait to shot ")
-  layout.attach_defaults(laDelaytime,0,1,3,4)
+  layout.attach_defaults(laDelaytime,0,1,4,5)
 
-  @txDelaytime = Gtk::Entry.new
-  @txDelaytime.text = '420'
-  layout.attach_defaults(@txDelaytime,1,2,3,4)
+  @txDelaytime = Gtk::SpinButton.new(0,500,1)
+  @txDelaytime.value = 420
+  layout.attach_defaults(@txDelaytime,1,2,4,5)
 
+  
 
-  layout.set_row_spacing(3,30)
+  layout.set_row_spacing(4,30)
   btSend = Gtk::Button.new("Send")
-  layout.attach_defaults(btSend,0,1,4,5)
+  layout.attach_defaults(btSend,0,1,5,6)
   
   btSend.signal_connect("clicked") {
     send()
@@ -85,10 +111,10 @@ def createUI
 
   @txSerialPort = Gtk::Entry.new
   @txSerialPort.text = "COM4"
-  layout.attach_defaults(@txSerialPort,1,2,4,5)
+  layout.attach_defaults(@txSerialPort,1,2,5,6)
 
   btRead = Gtk::Button.new("Read")
-  layout.attach_defaults(btRead,0,1,5,6)
+  layout.attach_defaults(btRead,0,1,6,7)
   btRead.signal_connect("clicked") {
     i = 0
     t = Thread.new { 
@@ -101,6 +127,16 @@ def createUI
         }
   }
 
+  btSave = Gtk::Button.new("Save")
+  layout.attach_defaults(btSave,0,1,7,8)
+  btSave.signal_connect("clicked") {
+    save()
+  }
+
+  @txTitle = Gtk::Entry.new
+  @txTitle.text = "noname"
+  layout.attach_defaults(@txTitle,1,2,7,8)
+
   @scroll = Gtk::ScrolledWindow.new
   @buf = Gtk::TextBuffer.new
   @buf.text = 'test'
@@ -110,7 +146,7 @@ def createUI
   @scroll.set_policy( Gtk::POLICY_AUTOMATIC, Gtk::POLICY_ALWAYS )
   @scroll.set_shadow_type(Gtk::SHADOW_ETCHED_IN)
   @scroll.set_size_request(200,500)
-  layout.attach_defaults(@scroll,0,2,6,15)
+  layout.attach_defaults(@scroll,0,2,8,15)
 
   window = Gtk::Window.new
   window.border_width = 20
