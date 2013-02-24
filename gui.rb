@@ -27,6 +27,25 @@ def save
 
 end
 
+def load(title)
+
+  save_file = File.new("setup.save","r")
+  while (line = save_file.gets)
+    arr = line.chomp.split(",")
+    puts arr.inspect
+    if (arr[0] == title)
+      @txVentilOpen1.text = arr[1]
+      @txWaitVentilOpen.text = arr[2]
+      @txVentilOpen2.text = arr[3]
+      @txDelaytime.text = arr[4]
+      @txBlitzDelaytime.text = arr[5]
+    end
+  end
+  save_file.close
+
+end
+
+
 def send
 
     #puts @txDelaytime.text
@@ -137,6 +156,21 @@ def createUI
   @txTitle.text = "noname"
   layout.attach_defaults(@txTitle,1,2,7,8)
 
+
+  btLoad = Gtk::Button.new("Load")
+  layout.attach_defaults(btLoad,0,1,8,9)
+  btLoad.signal_connect("clicked") {
+    load(@liTitle.active_text)
+  }
+
+  @liTitle = Gtk::ComboBox.new
+  save_file = File.new("setup.save","r")
+  while (line = save_file.gets)
+    @liTitle.append_text("#{line.split(",")[0]}")
+  end
+  save_file.close
+  layout.attach_defaults(@liTitle,1,2,8,9)
+
   @scroll = Gtk::ScrolledWindow.new
   @buf = Gtk::TextBuffer.new
   @buf.text = 'test'
@@ -146,7 +180,7 @@ def createUI
   @scroll.set_policy( Gtk::POLICY_AUTOMATIC, Gtk::POLICY_ALWAYS )
   @scroll.set_shadow_type(Gtk::SHADOW_ETCHED_IN)
   @scroll.set_size_request(200,500)
-  layout.attach_defaults(@scroll,0,2,8,15)
+  layout.attach_defaults(@scroll,0,2,9,15)
 
   window = Gtk::Window.new
   window.border_width = 20
