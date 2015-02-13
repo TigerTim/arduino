@@ -16,12 +16,12 @@ TFT screen = TFT(cs, dc, rst);
 int dW = 160;
 int dH = 128;
 
-File data_file;
-
 void setup() {
   // put your setup code here, to run once:
 
-  // Serial.begin(9600);
+  Serial.begin(9600);
+
+  Serial.println("START");
 
   sensor.begin();
 
@@ -31,7 +31,16 @@ void setup() {
   // clear the screen with a black background
   screen.background(0, 0, 0);
 
-  SD.begin();
+  if(!SD.begin(sd_cs)) {
+      Serial.println("ERROR when open SD");
+  }
+
+  Serial.println("____2___");
+
+  //write_data_to_file("test1,test2");
+
+
+  //read_data_from_file();
 
   //drawLine(0,0,50,50);
   displayTitleText();
@@ -51,20 +60,26 @@ void loop() {
     temp_pressure_screen();
 }
 
-void read_data_to_file(String value) {
+void read_data_from_file() {
 
-  data_file = SD.open("pressure_temp.csv", FILE_WRITE);
+  File data_file = SD.open("data.csv", FILE_READ);
 
-  data_file.println(value);
+  Serial.println(data_file.read());
 
   data_file.close();
 }
 
 void write_data_to_file(String value) {
 
-  data_file = SD.open("pressure_temp.csv", FILE_WRITE);
+  File data_file = SD.open("data.csv", FILE_WRITE);
 
-  data_file.println(value);
+  if(!data_file) {
+    Serial.println("ERROR file not found");
+  }
+
+  byte xx = data_file.println(value);
+
+  Serial.println(xx);
 
   data_file.close();
 }
@@ -80,7 +95,6 @@ void temp_pressure_screen() {
 
   String s = String(pressure) + "," + String(temp);
   write_data_to_file(s);
-
 
   delay(5000);
 
