@@ -42,8 +42,8 @@ void setup() {
 
   //read_data_from_file();
 
-  //drawLine(0,0,50,50);
-  displayTitleText();
+  drawLine(0,0,50,50);
+  //displayTitleText();
 
 }
 
@@ -57,14 +57,38 @@ void loop() {
     //Serial.print(bmp.readPressure());
     //Serial.println(" Pa");
 
-    temp_pressure_screen();
+    //temp_pressure_screen();
 }
+
+void read_pressure_from_file() {
+
+  byte num_of_values = 5;
+  byte counter = 0;
+
+  File data_file = SD.open("data.csv", FILE_READ);
+  int values[num_of_values];
+  byte b;
+
+  while (data_file.available() && counter <= num_of_values) {
+    b = data_file.read();
+
+    if(b == 44) {
+
+    }
+    counter += 1;
+  }
+
+  data_file.close();
+}
+
 
 void read_data_from_file() {
 
   File data_file = SD.open("data.csv", FILE_READ);
 
-  Serial.println(data_file.read());
+  while (data_file.available()) {
+       Serial.print(data_file.read());
+  }
 
   data_file.close();
 }
@@ -133,5 +157,18 @@ void displayTitleText() {
 
   // ste the font size very large for the loop
   screen.setTextSize(4);
+
+}
+
+void drawLine(byte x1, byte y1,byte x2, byte y2) {
+  // clear the screen with a black background
+  screen.background(0, 0, 0);
+
+  // write the static text to the screen
+  // set the font color to white
+  screen.stroke(255, 255, 255);
+
+  // ste the font size very large for the loop
+  screen.line(x1,y1,x2,y2);
 
 }

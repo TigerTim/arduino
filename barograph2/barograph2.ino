@@ -4,16 +4,16 @@
 #include <SD.h>
 #include <TFT.h>// Arduino LCD library
 
-#include <Adafruit_sensor085.h>
+#include <Adafruit_BMP085.h>
 
 #define SIZEOFRECORD 8
 
  // pin definition for the Uno
 #define tft_cs 10
-#define sd_cs 4
+#define sd_cs 7
 #define dc   9
 #define rst  8
-#define BUZ 7
+ // #define BUZ 4
 
 #define PREF_PRESSURE_MIN 98000
 #define PREF_PRESSURE_MAX 102500
@@ -29,7 +29,7 @@
 TFT TFTscreen = TFT(tft_cs, dc, rst);
 
 //Capteur de pression et de temperature
-Adafruit_sensor085 sensor;
+Adafruit_BMP085 sensor;
 
 unsigned long lastMeasurementTime = 0;
 unsigned long lastRefreshDisplay = 0;
@@ -41,8 +41,10 @@ int32_t min_pressure = PREF_PRESSURE_MIN;
 int32_t max_pressure = PREF_PRESSURE_MAX;
 byte norm_pressure_i = 0;
 
+float temperature = 0;
+
 //Liste des Ã©chelles en nombre de seconde par pixel horizontal
-prog_uint8_t scales[] PROGMEM = {3, 6, 12, 24, 48, 72, 96, 120}; //Correspond Ã  la visualisation de 3H, 6H, 12H, 24H, 48H, 72H}
+prog_uint8_t scales[] PROGMEM = {1, 3, 6, 12, 24, 48, 72, 96, 120}; //Correspond Ã  la visualisation de 3H, 6H, 12H, 24H, 48H, 72H}
 volatile byte iscale = 0;
 
 volatile unsigned long lastButtonAction = 0;
@@ -53,19 +55,19 @@ void setup () {
   // output, even if you don't use it:
   pinMode(10, OUTPUT);
 
-  //Serial.begin(9600);
+  Serial.begin(9600);
 
   if(!SD.begin(sd_cs)){
-    //Serial.println("Erreur 1");
+    Serial.println("Error SD card");
     return;
   }
 
   sensor.begin();
   // initialize the display
   TFTscreen.begin();
-  pinMode(BUZ, OUTPUT);
 
   pressure = sensor.readPressure();
+  temperature = sensor.readTemperature();
 
   // clear the screen with a pretty color
   TFTscreen.background(0,0,0);
@@ -73,7 +75,7 @@ void setup () {
   displayDisplayedPeriod();
 
   //Bouton gÃ©rÃ© par interruption
-  attachInterrupt(0, buttonActionPerformed, RISING);
+  attachInterrupt(2, buttonActionPerformed, RISING);
 }
 
 void loop () {
@@ -84,6 +86,7 @@ void loop () {
     lastMeasurementTime += gap;
 
     updatePressure();
+    updateTemperature();
     computePressureTrend();
     appendPressureInHistoric();
   }
@@ -189,6 +192,13 @@ void updatePressure(){
   displayPressure(pressure, 1, 75, 120, 255, 0, 0);
 }
 
+void updateTemperature(){
+  //Mise Ã  jour de la pression
+  float temperature = sensor.readTemperature();
+
+  displayTemperature(temperature, 5, 120, 255, 0, 0);
+}
+
 void displayText(String msg, int pxlg, int i, int j, byte r, byte g, byte b){
   TFTscreen.stroke(0,0,0);
   for(int k = i; k < i + pxlg; k++){
@@ -245,6 +255,22 @@ void displayPressure(int32_t pressureval, byte res, byte i, byte j, byte r, byte
   TFTscreen.stroke(r,g,b);
   TFTscreen.text(pressureStr, i, j);
 }
+
+void displayTemperature(float temperatureval, byte x, byte y, byte r, byte g, byte b){
+
+  //clean scren where display temperature
+  TFTscreen.stroke(0,0,0);
+  TFTscreen.fill(0,0,0);
+  TFTscreen.rect(x,y,30,7);
+
+  String myString = String(temperatureval);
+  char tempStr[7];
+  myString.toCharArray(tempStr, 5);
+  tempStr[4] = 67;
+  TFTscreen.stroke(r,g,b);
+  TFTscreen.text(tempStr, x, y);
+}
+
 
 void appendPressureInHistoric(){
   char pressureArray[7];
