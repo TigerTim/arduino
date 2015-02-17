@@ -16,7 +16,7 @@
  // #define BUZ 4
 
 #define PREF_PRESSURE_MIN 98000
-#define PREF_PRESSURE_MAX 102500
+#define PREF_PRESSURE_MAX 103500
 
 //Nbre de pixel de l'Ã©cran
 #define W_SCR 160
@@ -24,6 +24,10 @@
 
 //Hauteur des caractÃ¨re en pixel
 #define HEIGHT_CHAR 7
+
+#define UPDATE_SCREEN_1_TIME 10000
+#define UPDATE_SCREEN_2_TIME 10000
+#define MEASURE_TIME 1000
 
 //Ecran
 TFT TFTscreen = TFT(tft_cs, dc, rst);
@@ -34,6 +38,8 @@ Adafruit_BMP085 sensor;
 unsigned long lastMeasurementTime = 0;
 unsigned long lastRefreshDisplay = 0;
 byte heightsToDisplay[W_SCR];
+
+long lastRefreshDisplay_2 = 0;
 
 //Tendance de la pression sur 1 et 3 heures
 int32_t pressure = 0;
@@ -50,12 +56,24 @@ volatile byte iscale = 0;
 volatile unsigned long lastButtonAction = 0;
 volatile boolean isScaleChanged = false;
 
+//screens
+long last_screen_change   = 0;
+byte screen_number = 1;
+boolean is_screen_changed = false;
+
+//colors
+byte blue[] = {72, 203, 240};
+
 void setup () {
   // make sure that the default chip select pin is set to
   // output, even if you don't use it:
   pinMode(10, OUTPUT);
 
   Serial.begin(9600);
+
+
+  Serial.println("SETUP");
+
 
   if(!SD.begin(sd_cs)){
     Serial.println("Error SD card");
@@ -66,47 +84,127 @@ void setup () {
   // initialize the display
   TFTscreen.begin();
 
-  pressure = sensor.readPressure();
-  temperature = sensor.readTemperature();
+  measureValue();
 
   // clear the screen with a pretty color
   TFTscreen.background(0,0,0);
-  updateDataToDisplay();
-  displayDisplayedPeriod();
 
-  //Bouton gÃ©rÃ© par interruption
-  attachInterrupt(2, buttonActionPerformed, RISING);
+  Serial.println("SETUP screen_number = " + String(screen_number));
+
+  if(screen_number == 1) {
+    updateDataToDisplay();
+    displayDisplayedPeriod();
+  }
+  else if(screen_number == 2) {
+
+  }
+
+  // define buttons
+  //attachInterrupt(2, buttonActionPerformed, FALLING);
+  attachInterrupt(3, changeDisplay, LOW);
 }
+
 
 void loop () {
 
   unsigned long gap = millis() - lastMeasurementTime;
-  // capture pressure
-  if(gap >= 1000){
+
+  if(gap >= MEASURE_TIME){
     lastMeasurementTime += gap;
-
-    updatePressure();
-    updateTemperature();
-    computePressureTrend();
-    appendPressureInHistoric();
+    measureValue();
   }
 
-  // refresh display
-  gap = millis() - lastRefreshDisplay;
-  if(gap > 60000){
-    lastRefreshDisplay += gap;
-    updateDataToDisplay();
+
+  if(screen_number == 1){
+
+
+
+    // refresh display
+    gap = millis() - lastRefreshDisplay;
+    if(gap > UPDATE_SCREEN_1_TIME || is_screen_changed){
+      Serial.println("LOOP screen_number 1");
+      lastRefreshDisplay += gap;
+      TFTscreen.background(0,0,0);
+      displayDisplayedPeriod();
+      updateDataToDisplay();
+    }
+
+    // change scale on display
+    if(isScaleChanged || is_screen_changed){
+      isScaleChanged = false;
+      updateDataToDisplay();
+      displayDisplayedPeriod();
+    }
+  }
+  else if(screen_number == 2){
+
+    gap = millis() - lastRefreshDisplay_2;
+    if(gap > UPDATE_SCREEN_2_TIME || is_screen_changed){
+
+      Serial.println("LOOP screen_number 2");
+
+      lastRefreshDisplay_2 += gap;
+
+      TFTscreen.background(0,0,0);
+      display_screen_2();
+    }
   }
 
-  // change scale on display
-  if(isScaleChanged){
-    isScaleChanged = false;
-    updateDataToDisplay();
-    displayDisplayedPeriod();
+  if(is_screen_changed) {
+    is_screen_changed = false;
   }
 }
 
-void computePressureTrend(){
+void measureValue(){
+  updatePressure();
+  updateTemperature();
+  //compute_display_PressureTrend();
+  appendPressureInHistoric();
+}
+
+void display_screen_2(){
+
+
+  TFTscreen.stroke(blue[0], blue[1], blue[2]);
+
+
+
+    float xtemp = sensor.readTemperature();
+    float xpressure = sensor.readPressure();
+    displayValue(xpressure,0,20);
+    displayValue(xtemp,0,80);
+}
+
+
+void displayValue(float value, int x, int y) {
+  char valueStr[10];
+  String(value).toCharArray(valueStr, 5);
+  TFTscreen.setTextSize(4);
+  TFTscreen.text(valueStr,x,y);
+  TFTscreen.setTextSize(1);
+
+}
+
+void displayTitleText() {
+  // clear the screen with a black background
+  //screen.background(0, 0, 0);
+
+  // write the static text to the screen
+  // set the font color to white
+  //screen.stroke(255, 0, 255);
+  // set the font size
+  //screen.setTextSize(2);
+  // write the text to the top left corner of the screen
+  //screen.text("Luftdruck :\n ", 0, 0);
+  //screen.text("Temperature :\n ", 0, 60);
+
+  // ste the font size very large for the loop
+//  screen.setTextSize(4);
+
+}
+
+
+void compute_display_PressureTrend(){
   File historicFile = SD.open("historic.txt", FILE_WRITE);
   if(!historicFile){
     //Serial.println("1");
@@ -166,6 +264,18 @@ void buttonActionPerformed(){
   }
 }
 
+
+void changeDisplay(){
+  if(millis() - last_screen_change > 300){
+    last_screen_change = millis();
+    screen_number++;
+    if(screen_number == 3){
+      screen_number = 1;
+    }
+    is_screen_changed = true;
+  }
+}
+
 void displayDisplayedPeriod(){
   byte period = (byte)pgm_read_word_near(scales + iscale);
   String periodTxt = String(period);
@@ -176,6 +286,7 @@ void displayDisplayedPeriod(){
 void updatePressure(){
   //Mise Ã  jour de la pression
   long pressureTemp = sensor.readPressure();
+  Serial.println(pressureTemp);
   long var;
   if(pressureTemp > pressure){
     var = pressureTemp - pressure;
@@ -189,14 +300,14 @@ void updatePressure(){
     pressure = pressureTemp;
   }
 
-  displayPressure(pressure, 1, 75, 120, 255, 0, 0);
+//  displayPressure(pressure, 1, 75, 120, 255, 0, 0);
 }
 
 void updateTemperature(){
   //Mise Ã  jour de la pression
-  float temperature = sensor.readTemperature();
-
-  displayTemperature(temperature, 5, 120, 255, 0, 0);
+  float temperatureTemp = sensor.readTemperature();
+  temperature = temperatureTemp;
+//  displayTemperature(temperature, 5, 120, 255, 0, 0);
 }
 
 void displayText(String msg, int pxlg, int i, int j, byte r, byte g, byte b){
@@ -285,6 +396,8 @@ void appendPressureInHistoric(){
   if(!historicFile){
     return;
   }
+
+  Serial.println(pressureArray);
 
   historicFile.println(pressureArray);
   historicFile.close();
