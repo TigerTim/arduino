@@ -11,7 +11,7 @@ Adafruit_BMP085 sensor;
 #define dc   9
 #define rst  8
 
-#define MEASURE_INTERVAL 1000
+#define MEASURE_INTERVAL 10000
 
 TFT screen = TFT(cs, dc, rst);
 
@@ -47,6 +47,133 @@ void setup() {
     Serial.println("ERROR when open SD");
   }
   displayTitleText();
+  //draw_pressure_graph_lines();
+  //draw_pressure_graph();
+}
+
+void xloop(){
+
+}
+
+void draw_pressure_graph_lines() {
+
+  screen.stroke(text_color[0], text_color[1], text_color[2]);
+
+
+      for (int i = 0; i < screen_width; i ++) {
+        if(i % 4 == 0) {
+          screen.point(i, 100);
+        }
+      }
+      displayStringValue("980", 0, 97, 1);
+
+
+      for (int i = 0; i < screen_width; i ++) {
+        if(i % 4 == 0) {
+          screen.point(i, 80);
+        }
+      }
+      displayStringValue("990", 0, 77, 1);
+
+
+      for (int i = 0; i < screen_width; i ++) {
+        if(i % 4 == 0) {
+          screen.point(i, 60);
+        }
+      }
+      displayStringValue("1000", 0, 57, 1);
+
+      for (int i = 0; i < screen_width; i ++) {
+        if(i % 4 == 0) {
+          screen.point(i, 40);
+        }
+      }
+      displayStringValue("1010", 0, 37, 1);
+
+
+      for (int i = 0; i < screen_width; i ++) {
+        if(i % 4 == 0) {
+          screen.point(i, 20);
+        }
+      }
+      displayStringValue("1020", 0, 17, 1);
+
+}
+
+void draw_pressure_graph() {
+
+  //int num_of_values = 28;
+  //float values[] = {992.0,993.0,994.0,995.0,996.0,997.0,998.0,999.0,1000.0,1001.0,1002.0,1001.0,1000.0,
+            //        999.0,998.0,999.0,1000.0,1001.0,1002.0,1003.0,1002.0,1001.0,995.0,996.0,997.0,998.0,999.0,1000.0};
+
+
+  //for (int x = 0 ; x <= num_of_values; x++) {
+//  }
+
+  screen.stroke(more_pressure_color[0], more_pressure_color[1], more_pressure_color[2]);
+
+
+  File data_file = SD.open("DATA.CSV", FILE_WRITE);
+  if(!data_file) {
+    Serial.println("ERROR file not found read_pressure_from_file");
+  }
+  long file_size = data_file.size();
+
+  byte b;
+  char x_pressure[6];
+  long hours = 48;
+  long size_of_record = 13;
+
+  Serial.println("file size = " + String(file_size));
+
+
+  long pos = file_size - (60 * 60 * hours * 1000 / MEASURE_INTERVAL * size_of_record);
+
+  Serial.println("file pos = " + String(pos));
+
+  if (pos <= 0 ) {
+    pos = 0;
+  }
+
+  data_file.seek(pos);
+
+  int x = 0;
+
+  while(data_file.available() > size_of_record) {
+    for (int i = 0; i < size_of_record; i++) {
+
+      b = data_file.read();
+
+      if(i <= 5) {
+        x_pressure[i] = char(b);
+        Serial.print(char(b));
+      }
+
+
+    }
+
+    float f_pos = 0;
+
+    pos = data_file.position() + (3 * hours * size_of_record);
+    data_file.seek(pos);
+
+    float f_pressure;
+    sscanf(x_pressure, "%f", &f_pressure);
+
+    Serial.println("");
+    Serial.println(f_pressure);
+
+    int y = (screen_height / 2) + ((1000 - f_pressure) * 2);
+    screen.point(x, y);
+
+    Serial.println("");
+
+    x = x + 1;
+
+  }
+
+  Serial.println("number of records = " + String(x));
+
 }
 
 void loop() {
@@ -122,7 +249,7 @@ float read_f_pressure_from_file(int time) {
   }
   long file_size = data_file.size();
 
-  int sekunden = 60 * 60 * time * (MEASURE_INTERVAL / 1000);
+  int sekunden = 60 * 60 * time * 1000 / MEASURE_INTERVAL;
   long size_of_record = 13;
   long pos = file_size - (sekunden * size_of_record);
   data_file.seek(pos);
