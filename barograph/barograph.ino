@@ -6,10 +6,10 @@
 
 Adafruit_BMP085 sensor;
 
-#define cs 10
-#define sd_cs 7
-#define dc   9
-#define rst  8
+#define cs 12
+#define sd_cs 11
+#define dc 10
+#define rst 9
 
 #define MEASURE_INTERVAL 10000
 
@@ -35,28 +35,132 @@ float last_day_pressure_diff = 0;
 
 String temperature = "";
 String pressure = "";
+byte light_on = 0;
+
+int display_screen = 1;
+
+long last_light_on = 0;
+
+long last_button_pressed_time = 0;
+long light_last_button_pressed_time = 0;
+byte last_displayed_screen = 2;
 
 void setup() {
   Serial.begin(9600);
   Serial.println("START");
-  sensor.begin();
+  if(!sensor.begin()) {
+    Serial.println("ERROR sensor");
+  }
   screen.begin();
   // clear the screen with a black background
   screen.background(0, 0, 0);
   if(!SD.begin(sd_cs)) {
     Serial.println("ERROR when open SD");
   }
+
+  pinMode(4,OUTPUT);
+  digitalWrite(4,LOW);
+
   displayTitleText();
   //draw_pressure_graph_lines();
   //draw_pressure_graph();
+
+  attachInterrupt(7, change_display, RISING);
+  attachInterrupt(6, turn_on_display, RISING);
 }
 
-void xloop(){
+void turn_on_display() {
+  long button_pressed = millis() - light_last_button_pressed_time;
+
+  if(button_pressed > 100) {
+    light_on = 1;
+  }
+
+  light_last_button_pressed_time = millis();
+}
+
+void loop(){
+
+  if (light_on == 0){
+
+  }
+  else if( light_on == 1){
+    digitalWrite(4,HIGH);
+    light_on = 2;
+    last_light_on = millis();
+  }
+  else {
+    if (millis() - last_light_on > 10000) {
+      digitalWrite(4,LOW);
+      light_on = 0;
+    }
+  }
+
+  if(display_screen == 1 && last_displayed_screen == 2) {
+    displayTitleText();
+    last_displayed_screen = 1;
+  }
+  else if (display_screen == 2 && last_displayed_screen == 1){
+    draw_pressure_graph_lines();
+    last_displayed_screen = 2;
+  }
+  else {
+    // nothing changed
+  }
+
+  unsigned long gap = millis() - last_measure_time;
+
+  if(gap >= MEASURE_INTERVAL){
+    last_measure_time += gap;
+    pressure = readPressure();
+    temperature = readTemp();
+    write_data_to_file();
+  }
+
+  if(last_displayed_screen == 1) {
+
+    if(gap >= MEASURE_INTERVAL){
+      display_pressure_on_screen();
+      display_temperature_on_screen();
+      display_pressure_trend();
+      display_day_pressure_trend();
+    }
+
+  }
+  else if(last_displayed_screen == 2) {
+    if(gap >= MEASURE_INTERVAL){
+      draw_pressure_graph();
+    }
+  }
+
+
+
+}
+
+void change_display() {
+
+  long button_pressed = millis() - last_button_pressed_time;
+
+  if(button_pressed > 100) {
+
+      if(display_screen == 1) {
+        display_screen = 2;
+      }
+      else if(display_screen == 2) {
+        display_screen = 1;
+      }
+
+      Serial.println("display = " + String(display_screen));
+
+  }
+
+  last_button_pressed_time = millis();
 
 }
 
 void draw_pressure_graph_lines() {
 
+  screen.background(0,0,0);
   screen.stroke(text_color[0], text_color[1], text_color[2]);
 
 
@@ -101,14 +205,6 @@ void draw_pressure_graph_lines() {
 }
 
 void draw_pressure_graph() {
-
-  //int num_of_values = 28;
-  //float values[] = {992.0,993.0,994.0,995.0,996.0,997.0,998.0,999.0,1000.0,1001.0,1002.0,1001.0,1000.0,
-            //        999.0,998.0,999.0,1000.0,1001.0,1002.0,1003.0,1002.0,1001.0,995.0,996.0,997.0,998.0,999.0,1000.0};
-
-
-  //for (int x = 0 ; x <= num_of_values; x++) {
-//  }
 
   screen.stroke(more_pressure_color[0], more_pressure_color[1], more_pressure_color[2]);
 
@@ -176,7 +272,7 @@ void draw_pressure_graph() {
 
 }
 
-void loop() {
+void xloop() {
   unsigned long gap = millis() - last_measure_time;
   // capture pressure
   if(gap >= MEASURE_INTERVAL){
@@ -335,18 +431,18 @@ void display_day_pressure_trend() {
 
 
 void write_data_to_file() {
-  String value = last_pressure + "," + last_temperature;
+  String value = pressure + "," + temperature;
   File data_file = SD.open("DATA.CSV", FILE_WRITE);
 
   if(!data_file) {
     Serial.println("ERROR file not found write_data_to_file");
   }
   data_file.println(value);
+  Serial.println("write values : " + String(value));
   data_file.close();
 }
 
 void display_temperature_on_screen() {
-  temperature = readTemp();
 
   byte pos_x = screen_width - 50;
   byte pos_y = screen_height - 20;
@@ -365,7 +461,6 @@ void display_temperature_on_screen() {
 
 void display_pressure_on_screen() {
 
-  pressure = readPressure();
   if (last_pressure != pressure){
     screen.stroke(0,0,0);
     screen.fill(0, 0, 0);
