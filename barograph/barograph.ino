@@ -4,6 +4,11 @@
 #include <SPI.h>
 #include <SD.h>
 
+#include <avr/pgmspace.h>
+const char pad[500] PROGMEM = { 0 };
+
+
+
 Adafruit_BMP085 sensor;
 
 #define cs 12
@@ -12,6 +17,7 @@ Adafruit_BMP085 sensor;
 #define rst 9
 
 #define MEASURE_INTERVAL 10000
+#define LIGHT_CHECK_INTERVAL 1000
 
 TFT screen = TFT(cs, dc, rst);
 
@@ -27,6 +33,7 @@ byte less_pressure_color[] = {250,20,20};
 
 unsigned long last_measure_time = 0;
 unsigned long last_read_time = 0;
+unsigned long last_light_check_time = 0;
 
 String last_pressure = "";
 String last_temperature = "";
@@ -46,20 +53,21 @@ long light_last_button_pressed_time = 0;
 byte last_displayed_screen = 2;
 
 void setup() {
-  Serial.begin(9600);
-  Serial.println("START");
+  pad[0];
+  //Serial.begin(9600);
+  //Serial.println("START");
   if(!sensor.begin()) {
-    Serial.println("ERROR sensor");
+    //Serial.println("ERROR sensor");
   }
   screen.begin();
   // clear the screen with a black background
   screen.background(0, 0, 0);
   if(!SD.begin(sd_cs)) {
-    Serial.println("ERROR when open SD");
+    //Serial.println("ERROR when open SD");
   }
 
   pinMode(4,OUTPUT);
-  digitalWrite(4,LOW);
+  digitalWrite(4,HIGH);
 
   displayTitleText();
   //draw_pressure_graph_lines();
@@ -67,6 +75,11 @@ void setup() {
 
   attachInterrupt(7, change_display, RISING);
   attachInterrupt(6, turn_on_display, RISING);
+  
+  
+  
+
+
 }
 
 void turn_on_display() {
@@ -81,20 +94,27 @@ void turn_on_display() {
 
 void loop(){
 
-  if (light_on == 0){
 
-  }
-  else if( light_on == 1){
-    digitalWrite(4,HIGH);
-    light_on = 2;
-    last_light_on = millis();
-  }
-  else {
-    if (millis() - last_light_on > 10000) {
-      digitalWrite(4,LOW);
-      light_on = 0;
+
+  unsigned long gap = millis() - last_light_check_time;
+
+  if(gap >= LIGHT_CHECK_INTERVAL){
+    if (light_on == 0){
+
+    }
+    else if( light_on == 1){
+      digitalWrite(4,HIGH);
+      light_on = 2;
+      last_light_on = millis();
+    }
+    else {
+      if (millis() - last_light_on > 30000) {
+        digitalWrite(4,LOW);
+        light_on = 0;
+      }
     }
   }
+
 
   if(display_screen == 1 && last_displayed_screen == 2) {
     displayTitleText();
@@ -108,7 +128,7 @@ void loop(){
     // nothing changed
   }
 
-  unsigned long gap = millis() - last_measure_time;
+  gap = millis() - last_measure_time;
 
   if(gap >= MEASURE_INTERVAL){
     last_measure_time += gap;
@@ -134,7 +154,6 @@ void loop(){
   }
 
 
-
 }
 
 void change_display() {
@@ -150,7 +169,7 @@ void change_display() {
         display_screen = 1;
       }
 
-      Serial.println("display = " + String(display_screen));
+    //  Serial.println("display = " + String(display_screen));
 
   }
 
@@ -211,21 +230,21 @@ void draw_pressure_graph() {
 
   File data_file = SD.open("DATA.CSV", FILE_WRITE);
   if(!data_file) {
-    Serial.println("ERROR file not found read_pressure_from_file");
+    //Serial.println("ERROR file not found read_pressure_from_file");
   }
   long file_size = data_file.size();
 
   byte b;
   char x_pressure[6];
-  long hours = 48;
+  long hours = 24;
   long size_of_record = 13;
 
-  Serial.println("file size = " + String(file_size));
+  //Serial.println("file size = " + String(file_size));
 
 
   long pos = file_size - (60 * 60 * hours * 1000 / MEASURE_INTERVAL * size_of_record);
 
-  Serial.println("file pos = " + String(pos));
+  //Serial.println("file pos = " + String(pos));
 
   if (pos <= 0 ) {
     pos = 0;
@@ -242,7 +261,7 @@ void draw_pressure_graph() {
 
       if(i <= 5) {
         x_pressure[i] = char(b);
-        Serial.print(char(b));
+      //  Serial.print(char(b));
       }
 
 
@@ -256,19 +275,19 @@ void draw_pressure_graph() {
     float f_pressure;
     sscanf(x_pressure, "%f", &f_pressure);
 
-    Serial.println("");
-    Serial.println(f_pressure);
+    //Serial.println("");
+    //Serial.println(f_pressure);
 
     int y = (screen_height / 2) + ((1000 - f_pressure) * 2);
     screen.point(x, y);
 
-    Serial.println("");
+    //Serial.println("");
 
     x = x + 1;
 
   }
 
-  Serial.println("number of records = " + String(x));
+  //Serial.println("number of records = " + String(x));
 
 }
 
@@ -292,7 +311,7 @@ void read_pressure_from_file() {
 
   File data_file = SD.open("DATA.CSV", FILE_WRITE);
   if(!data_file) {
-    Serial.println("ERROR file not found read_pressure_from_file");
+    //Serial.println("ERROR file not found read_pressure_from_file");
   }
   long file_size = data_file.size();
 
@@ -316,8 +335,8 @@ void read_pressure_from_file() {
 
     if(i > 6) {
       file_temperature[i - 7] = char(b);
-      Serial.print(b);
-      Serial.print(',');
+      //Serial.print(b);
+      //Serial.print(',');
     }
 
   }
@@ -340,7 +359,7 @@ float read_f_pressure_from_file(int time) {
 
   File data_file = SD.open("DATA.CSV", FILE_WRITE);
   if(!data_file) {
-    Serial.println("ERROR file not found read_pressure_from_file");
+    //Serial.println("ERROR file not found read_pressure_from_file");
     return 0;
   }
   long file_size = data_file.size();
@@ -435,10 +454,10 @@ void write_data_to_file() {
   File data_file = SD.open("DATA.CSV", FILE_WRITE);
 
   if(!data_file) {
-    Serial.println("ERROR file not found write_data_to_file");
+    //Serial.println("ERROR file not found write_data_to_file");
   }
   data_file.println(value);
-  Serial.println("write values : " + String(value));
+  //Serial.println("write values : " + String(value));
   data_file.close();
 }
 
@@ -543,3 +562,7 @@ void drawLine(byte x1, byte y1,byte x2, byte y2) {
   screen.line(x1,y1,x2,y2);
 
 }
+
+
+
+
